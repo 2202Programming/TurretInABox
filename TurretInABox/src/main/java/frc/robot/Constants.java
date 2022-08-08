@@ -37,6 +37,10 @@ public final class Constants {
         public static final double AZIMUTH_GEAR_RATIO = 9.0*5.0*14.0; 
         public static final double ELEVATION_GEAR_RATIO = 9999.99999;
 
+        // tolerances
+        public static final double TOLERANCE_AZ = 0.0; // in deg
+        public static final double TOLERANCE_ELE = 0.0; // in deg
+
     }
 
     public static class NetworkTables {
