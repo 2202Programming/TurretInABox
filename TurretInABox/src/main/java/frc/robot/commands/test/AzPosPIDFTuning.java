@@ -37,10 +37,10 @@ public class AzPosPIDFTuning extends SequentialCommandGroup {
 
         NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_NAME);
 
-        nt_az_kP = table.getEntry("/AzPos_kP");
-        nt_az_kI = table.getEntry("/AzPos_kI");
-        nt_az_kD = table.getEntry("/AzPos_kD");
-        nt_az_kF = table.getEntry("/AzPos_kF");
+        nt_az_kP = table.getEntry("/kP");
+        nt_az_kI = table.getEntry("/kI");
+        nt_az_kD = table.getEntry("/kD");
+        nt_az_kF = table.getEntry("/kF");
 
         turret.setAzPosPID(new PIDFController(
             nt_az_kP.getDouble(1.0),

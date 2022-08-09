@@ -18,10 +18,10 @@ public class AzVelPIDFTuning extends CommandBase {
     // NT stuff
     final String NT_NAME = "AzVelPIDTuning";
     
-    final NetworkTableEntry nt_az_kP;
-    final NetworkTableEntry nt_az_kI;
-    final NetworkTableEntry nt_az_kD;
-    final NetworkTableEntry nt_az_kF;
+    final NetworkTableEntry nt_kP;
+    final NetworkTableEntry nt_kI;
+    final NetworkTableEntry nt_kD;
+    final NetworkTableEntry nt_kF;
 
     /**
      * Creates a new command to move the Azimuth motor at 1 deg/sec with the PID values in the NT.
@@ -37,10 +37,10 @@ public class AzVelPIDFTuning extends CommandBase {
 
         NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_NAME);
 
-        nt_az_kP = table.getEntry("/AzPos_kP");
-        nt_az_kI = table.getEntry("/AzPos_kI");
-        nt_az_kD = table.getEntry("/AzPos_kD");
-        nt_az_kF = table.getEntry("/AzPos_kF");
+        nt_kP = table.getEntry("/kP");
+        nt_kI = table.getEntry("/kI");
+        nt_kD = table.getEntry("/kD");
+        nt_kF = table.getEntry("/kF");
 
         turret.setAzVelPID(new PIDFController(
             nt_az_kP.getDouble(1.0),
@@ -58,7 +58,7 @@ public class AzVelPIDFTuning extends CommandBase {
 
     @Override
     public void end(boolean interrupted) {
-        System.out.println("**** Final tested PIDF velocity values for elevation motor: kP = " + nt_az_kP.getDouble(1) + ", kI = " + nt_az_kI.getDouble(0) + ", kD = " + nt_az_kD.getDouble(0) + "kF = " + nt_az_kF.getDouble(0) + " ****");
+        System.out.println("**** Final tested PIDF velocity values for elevation motor: kP = " + nt_kP.getDouble(1) + ", kI = " + nt_kI.getDouble(0) + ", kD = " + nt_kD.getDouble(0) + "kF = " + nt_kF.getDouble(0) + " ****");
     }
 
     @Override

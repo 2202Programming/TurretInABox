@@ -18,10 +18,10 @@ public class ElePosPIDFTuning extends SequentialCommandGroup {
     // NT stuff
     final String NT_NAME = "ElePosPIDTuning";
     
-    final NetworkTableEntry nt_ele_kP;
-    final NetworkTableEntry nt_ele_kI;
-    final NetworkTableEntry nt_ele_kD;
-    final NetworkTableEntry nt_ele_kF;
+    final NetworkTableEntry nt_kP;
+    final NetworkTableEntry nt_kI;
+    final NetworkTableEntry nt_kD;
+    final NetworkTableEntry nt_kF;
 
     /**
      * Creates a new command to oscillate the elevation motor between 0 and 180 with the PID values in the NT.
@@ -37,10 +37,10 @@ public class ElePosPIDFTuning extends SequentialCommandGroup {
 
         NetworkTable table = NetworkTableInstance.getDefault().getTable(NT_NAME);
 
-        nt_ele_kP = table.getEntry("/ElePos_kP");
-        nt_ele_kI = table.getEntry("/ElePos_kI");
-        nt_ele_kD = table.getEntry("/ElePos_kD");
-        nt_ele_kF = table.getEntry("/ElePos_kF");
+        nt_kP = table.getEntry("/kP");
+        nt_kI = table.getEntry("/kI");
+        nt_kD = table.getEntry("/kD");
+        nt_kF = table.getEntry("/kF");
 
         turret.setElePosPID(new PIDFController(
             nt_ele_kP.getDouble(1.0),
@@ -106,7 +106,7 @@ public class ElePosPIDFTuning extends SequentialCommandGroup {
 
     @Override
     public void end(boolean interrupted) {
-        System.out.println("**** Final tested PIDF velocious values for elevation motor: kP = " + nt_ele_kP.getDouble(1) + ", kI = " + nt_ele_kI.getDouble(0) + ", kD = " + nt_ele_kD.getDouble(0) + ", kF = " + nt_ele_kF.getDouble(0) + " ****");
+        System.out.println("**** Final tested PIDF velocious values for elevation motor: kP = " + nt_kP.getDouble(1) + ", kI = " + nt_kI.getDouble(0) + ", kD = " + nt_kD.getDouble(0) + ", kF = " + nt_kF.getDouble(0) + " ****");
     }
 
     @Override
