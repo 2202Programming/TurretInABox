@@ -23,6 +23,10 @@ import static frc.robot.Constants.TurretConst.BUSTIMEOUT;
 import static frc.robot.Constants.TurretConst.NT_NAME;
 
 public class Turret extends SubsystemBase {
+
+  ControlMode az_control_mode;
+  ControlMode ele_control_mode;
+  
   // Talon constanst
   final double COUNTS_PER_REV = 4096;
   final double DEGREES = 360;
@@ -53,11 +57,15 @@ public class Turret extends SubsystemBase {
   TalonFXSensorCollection ele_sensors;
 
   // PID stuff
-  PIDFController az_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
-  PIDFController ele_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
-  int kSlot = 0;
+  PIDFController az_pos_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
+  PIDFController ele_pos_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
+  int kSlotPos = 0;
 
-  public Turret() {
+  PIDFController az_vel_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
+  PIDFController ele_vel_PID = new PIDFController(1.0, 0.0, 0.0, 0.0);
+  int kSlotVel = 1;
+
+  public Turret(ControlMode defaultMode) {
     azimuthMotor = new WPI_TalonFX(CAN2.AZIMUTH, CAN2.BUSNAME);
     elevationMotor = new WPI_TalonFX(CAN2.ELEVATION, CAN2.BUSNAME);
 
@@ -73,8 +81,13 @@ public class Turret extends SubsystemBase {
     az_sensors.setIntegratedSensorPositionToAbsolute(BUSTIMEOUT);
     ele_sensors.setIntegratedSensorPositionToAbsolute(BUSTIMEOUT);
 
-    az_PID.copyTo(azimuthMotor, kSlot);
-    ele_PID.copyTo(elevationMotor, kSlot);
+    az_pos_PID.copyTo(azimuthMotor, kSlotPos);
+    ele_pos_PID.copyTo(elevationMotor, kSlotPos);
+    az_vel_PID.copyTo(azimuthMotor, kSlotVel);
+    ele_vel_PID.copyTo(elevationMotor, kSlotVel);
+
+    az_control_mode = defaultMode;
+    ele_control_mode = defaultMode;
 
     // NT and NTEs
     NTConfig();
@@ -89,16 +102,42 @@ public class Turret extends SubsystemBase {
     NTUpdate();
   }
 
+  /**
+   * Sets the control mode of the azimuth motor to the given mode.
+   * 
+   * @param controlMode The contorl mode to set the motor to.
+   */
+  public void setAzMode(ControlMode controlMode) {
+    this.az_control_mode = controlMode;
+  }
+
+  /**
+   * Sets the control mode of the elevation motor to the given mode.
+   * 
+   * @param controlMode The contorl mode to set the motor to.
+   */
+  public void setEleMode(ControlMode controlMode) {
+    this.ele_control_mode = controlMode;
+  }
+
+  /**
+   * Checks if the actual position of the azimuth and elevation motors are close enough to the commanded positions.
+   * 
+   * @return True if delta between commanded and actual positions is within tolerances, false otherwise.
+   */
   public boolean checkIsFinishedPos() {
     return ((Math.abs(this.getAzPos() - az_pos_cmd) <= TurretConst.TOLERANCE_AZ)
             && (Math.abs(this.getElePos() - ele_pos_cmd) <= TurretConst.TOLERANCE_ELE));
   }
+
+
 
   /*
    * Note on the nomenclature for the get/set methods below:
    * 
    * get: Get a value
    * set: Set a value
+   * reset: Reset a value to 0
    * 
    * Az: Azimuth motor
    * Ele: Elevation motor
@@ -109,6 +148,70 @@ public class Turret extends SubsystemBase {
    * Pos: Position
    * Vel: Velocity
    */
+
+  /**
+   * Sets the azimuth motor positional PID to the given values.
+   * 
+   * @param controller The values to set the PID to.
+   */
+  public void setAzPosPID(PIDFController controller) {
+    controller.copyTo(azimuthMotor, kSlotPos);
+  }
+
+  /**
+   * Sets the elevation motor positional PID to the given values.
+   * 
+   * @param controller The values to set the PID to.
+   */
+  public void setElePosPID(PIDFController controller) {
+    controller.copyTo(elevationMotor, kSlotPos);
+  }
+
+  /**
+   * Sets the azimuth motor velocious PID to the given values.
+   * 
+   * @param controller The values to set the PID to.
+   */
+  public void setAzVelPID(PIDFController controller) {
+    controller.copyTo(azimuthMotor, kSlotVel);
+  }
+
+  /**
+   * Sets the elevation motor velocious PID to the given values.
+   * 
+   * @param controller The values to set the PID to.
+   */
+  public void setEleVelPID(PIDFController controller) {
+    controller.copyTo(elevationMotor, kSlotVel);
+  }
+
+  /**
+   * Resets the integral accumulation of the azimuth motor positional PID.
+   */
+  public void resetAzPosIGain() {
+    ele_pos_PID.setIzone(0.0);
+  }
+  
+  /**
+   * Resets the integral accumulation of the azimuth motor velocious PID.
+   */
+  public void resetAzVelIGain() {
+    ele_pos_PID.setIzone(0.0);
+  }
+
+  /**
+   * Resets the integral accumulation of the elevation motor positional PID.
+   */
+  public void resetElePosIGain() {
+    ele_pos_PID.setIzone(0.0);
+  }
+  
+  /**
+   * Resets the integral accumulation of the elevation motor velocious PID.
+   */
+  public void resetEleVelIGain() {
+    ele_pos_PID.setIzone(0.0);
+  }
 
   /**
    * Sets the internal positional encoder of the azimuth motor to the specified
@@ -139,7 +242,7 @@ public class Turret extends SubsystemBase {
     azimuthMotor.set(ControlMode.Position, rawCount);
 
     az_pos_cmd = adjustedPos;
-    az_vel_cmd = Double.NaN; // TODO: is this right?
+    az_control_mode = ControlMode.Position;
   }
 
   /**
@@ -185,7 +288,7 @@ public class Turret extends SubsystemBase {
     elevationMotor.set(ControlMode.Position, rawCount);
 
     ele_pos_cmd = adjustedPos;
-    ele_vel_cmd = Double.NaN; // TODO: is this right?
+    ele_control_mode = ControlMode.Position;
   }
 
   /**
@@ -217,7 +320,7 @@ public class Turret extends SubsystemBase {
     azimuthMotor.set(rawCount);
 
     az_vel_cmd = adjustedVel;
-    az_pos_cmd = Double.NaN; // TODO: is this right?
+    az_control_mode = ControlMode.Velocity;
   }
 
   /**
@@ -250,7 +353,7 @@ public class Turret extends SubsystemBase {
     elevationMotor.set(ControlMode.Velocity, rawCount);
 
     ele_vel_cmd = adjustedVel;
-    ele_pos_cmd = Double.NaN; // TODO: is this right?
+    ele_control_mode = ControlMode.Velocity;
   }
 
   /**
@@ -274,19 +377,27 @@ public class Turret extends SubsystemBase {
   private NetworkTableEntry nt_az_vel;
   private NetworkTableEntry nt_ele_pos;
   private NetworkTableEntry nt_ele_vel;
+  private NetworkTableEntry nt_az_control_mode;
+  private NetworkTableEntry nt_ele_control_mode;
 
   void NTConfig() {
     table = NetworkTableInstance.getDefault().getTable(NT_NAME);
     nt_az_pos = table.getEntry("/azimuth_position");
     nt_az_vel = table.getEntry("/azimuth_velocity");
+    nt_az_control_mode = table.getEntry("/azimuth_control_mode");
+
     nt_ele_pos = table.getEntry("/elevation_position");
     nt_ele_vel = table.getEntry("/elevation_velocity");
+    nt_ele_control_mode = table.getEntry("/elevation_control_mode");
   }
 
   void NTUpdate() {
     nt_az_pos.setDouble(az_pos);
     nt_az_vel.setDouble(az_vel);
+    nt_az_control_mode.setString(az_control_mode.toString());
+
     nt_ele_pos.setDouble(ele_pos);
     nt_ele_vel.setDouble(ele_vel);
+    nt_ele_control_mode.setString(ele_control_mode.toString());
   }
 }

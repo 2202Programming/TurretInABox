@@ -4,10 +4,20 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.commands.ExampleCommand;
+import frc.robot.commands.test.AzPosPIDFTuning;
+import frc.robot.commands.test.AzVelPIDFTuning;
+import frc.robot.commands.test.ElePosPIDFTuning;
+import frc.robot.commands.test.EleVelPIDFTuning;
 import frc.robot.subsystems.ExampleSubsystem;
+import frc.robot.subsystems.hid.HID_Xbox_Subsystem;
+import frc.robot.subsystems.hid.SideboardController.SBButton;
+import frc.robot.subsystems.ifx.DriverControls.Id;
+import frc.robot.subsystems.turret.Turret;
 import edu.wpi.first.wpilibj2.command.Command;
 
 /**
@@ -23,9 +33,19 @@ public class RobotContainer {
   private final ExampleCommand m_autoCommand = new ExampleCommand(m_exampleSubsystem);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
+
+  public final HID_Xbox_Subsystem driverControls;
+
+  public final Turret turret;
+
   public RobotContainer() {
     // Configure the button bindings
     configureButtonBindings();
+
+    // Values based off FRC-2022 constants
+    driverControls = new HID_Xbox_Subsystem(3.0, 0.9, 0.05);
+
+    this.turret = new Turret(ControlMode.Velocity);
   }
 
   /**
@@ -34,7 +54,13 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a {@link
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
-  private void configureButtonBindings() {}
+  private void configureButtonBindings() {
+    driverControls.bind(Id.SwitchBoard, SBButton.Sw11).whileHeld(new AzPosPIDFTuning(turret, false, driverControls));
+    driverControls.bind(Id.SwitchBoard, SBButton.Sw12).whileHeld(new ElePosPIDFTuning(turret, false, driverControls));
+    driverControls.bind(Id.SwitchBoard, SBButton.Sw21).whileHeld(new AzVelPIDFTuning(turret, false, driverControls));
+    driverControls.bind(Id.SwitchBoard, SBButton.Sw22).whileHeld(new EleVelPIDFTuning(turret, false, driverControls));
+
+  }
 
   /**
    * Use this to pass the autonomous command to the main {@link Robot} class.
