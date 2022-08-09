@@ -1,5 +1,7 @@
 package frc.robot.commands.test;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -8,6 +10,7 @@ import frc.robot.commands.turret.MoveTurretTo;
 import frc.robot.subsystems.hid.XboxButton;
 import frc.robot.subsystems.ifx.DriverControls;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.DesiredMotor;
 import frc.robot.util.PIDFController;
 
 public class AzPosPIDFTuning extends SequentialCommandGroup {
@@ -42,7 +45,7 @@ public class AzPosPIDFTuning extends SequentialCommandGroup {
         nt_az_kD = table.getEntry("/kD");
         nt_az_kF = table.getEntry("/kF");
 
-        turret.setAzPosPID(new PIDFController(
+        turret.setPIDF(DesiredMotor.Azimuth, ControlMode.Position, new PIDFController(
             nt_az_kP.getDouble(1.0),
             nt_az_kI.getDouble(0.0),
             nt_az_kD.getDouble(0.0),
@@ -50,7 +53,7 @@ public class AzPosPIDFTuning extends SequentialCommandGroup {
         ));
 
         if (kIAccumReset) {
-            turret.resetAzPosIGain();
+            turret.setIGain(DesiredMotor.Azimuth, ControlMode.Position, 0.0);
         }
         
         // I'm sure this is enough

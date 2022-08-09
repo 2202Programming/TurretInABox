@@ -1,5 +1,7 @@
 package frc.robot.commands.test;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -8,6 +10,7 @@ import frc.robot.commands.turret.MoveTurretTo;
 import frc.robot.subsystems.hid.XboxButton;
 import frc.robot.subsystems.ifx.DriverControls;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.DesiredMotor;
 import frc.robot.util.PIDFController;
 
 public class ElePosPIDFTuning extends SequentialCommandGroup {
@@ -42,15 +45,15 @@ public class ElePosPIDFTuning extends SequentialCommandGroup {
         nt_kD = table.getEntry("/kD");
         nt_kF = table.getEntry("/kF");
 
-        turret.setElePosPID(new PIDFController(
-            nt_ele_kP.getDouble(1.0),
-            nt_ele_kI.getDouble(0.0),
-            nt_ele_kD.getDouble(0.0),
-            nt_ele_kF.getDouble(0.0)
+        turret.setPIDF(DesiredMotor.Elevation, ControlMode.Position, new PIDFController(
+            nt_kP.getDouble(1.0),
+            nt_kI.getDouble(0.0),
+            nt_kD.getDouble(0.0),
+            nt_kF.getDouble(0.0)
         ));
 
         if (kIAccumReset) {
-            turret.resetElePosIGain();
+            turret.setIGain(DesiredMotor.Elevation, ControlMode.Position, 0.0);
         }
         
         // I'm sure this is enough

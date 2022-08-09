@@ -1,5 +1,7 @@
 package frc.robot.commands.test;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -8,6 +10,7 @@ import frc.robot.commands.turret.MoveTurretFor;
 import frc.robot.subsystems.hid.XboxButton;
 import frc.robot.subsystems.ifx.DriverControls;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.DesiredMotor;
 import frc.robot.util.PIDFController;
 
 public class EleVelPIDFTuning extends CommandBase {
@@ -42,15 +45,15 @@ public class EleVelPIDFTuning extends CommandBase {
         nt_kD = table.getEntry("/kD");
         nt_kF = table.getEntry("/kF");
 
-        turret.setEleVelPID(new PIDFController(
-            nt_ele_kP.getDouble(1),
-            nt_ele_kI.getDouble(0),
-            nt_ele_kD.getDouble(0),
-            nt_ele_kF.getDouble(0)
+        turret.setPIDF(DesiredMotor.Elevation, ControlMode.Velocity, new PIDFController(
+            nt_kP.getDouble(1),
+            nt_kI.getDouble(0),
+            nt_kD.getDouble(0),
+            nt_kF.getDouble(0)
         ));
 
         if (kIAccumReset) {
-            turret.resetEleVelIGain();
+            turret.setIGain(DesiredMotor.Elevation, ControlMode.Velocity, 0.0);
         }
 
         new MoveTurretFor(turret, 0.0, 1.0, Double.MAX_VALUE);

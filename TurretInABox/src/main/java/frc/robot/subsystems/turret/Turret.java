@@ -24,8 +24,15 @@ import static frc.robot.Constants.TurretConst.NT_NAME;
 
 public class Turret extends SubsystemBase {
 
+  public enum DesiredMotor {
+    Azimuth,
+    Elevation,
+  }
+
   ControlMode az_control_mode;
   ControlMode ele_control_mode;
+
+  final int ENUM_ADJ_FACTOR = -1;
   
   // Talon constanst
   final double COUNTS_PER_REV = 4096;
@@ -95,39 +102,36 @@ public class Turret extends SubsystemBase {
 
   @Override
   public void periodic() {
-    az_pos = getAzPos();
-    az_vel = getAzVel();
-    ele_pos = getElePos();
-    ele_vel = getEleVel();
+    az_pos = getVal(DesiredMotor.Azimuth, ControlMode.Position);
+    az_vel = getVal(DesiredMotor.Azimuth, ControlMode.Velocity);
+    ele_pos = getVal(DesiredMotor.Elevation, ControlMode.Position);
+    ele_vel = getVal(DesiredMotor.Elevation, ControlMode.Velocity);
     NTUpdate();
   }
 
   /**
-   * Sets the control mode of the azimuth motor to the given mode.
+   * Sets the control mode of the indicated motors to the indicated control mode.
    * 
-   * @param controlMode The contorl mode to set the motor to.
+   * @param setAz Whether or not to set the azimuth motor control mode to the given mode.
+   * @param motor Which motor to set the mode for.
    */
-  public void setAzMode(ControlMode controlMode) {
-    this.az_control_mode = controlMode;
-  }
-
-  /**
-   * Sets the control mode of the elevation motor to the given mode.
-   * 
-   * @param controlMode The contorl mode to set the motor to.
-   */
-  public void setEleMode(ControlMode controlMode) {
-    this.ele_control_mode = controlMode;
+  public void setMode(DesiredMotor motor, ControlMode mode) {
+    switch (motor) {
+      case Azimuth: az_control_mode = mode;
+      case Elevation: ele_control_mode = mode;
+    }
   }
 
   /**
    * Checks if the actual position of the azimuth and elevation motors are close enough to the commanded positions.
    * 
+   * @param checkAz Whether to check if azimuth position is within tolerance of commanded position.
+   * @param checkEle Whether to check if elevation position is within tolerance of commanded position.
    * @return True if delta between commanded and actual positions is within tolerances, false otherwise.
    */
-  public boolean checkIsFinishedPos() {
-    return ((Math.abs(this.getAzPos() - az_pos_cmd) <= TurretConst.TOLERANCE_AZ)
-            && (Math.abs(this.getElePos() - ele_pos_cmd) <= TurretConst.TOLERANCE_ELE));
+  public boolean checkIsFinishedPos(boolean checkAz, boolean checkEle) {
+    return (checkAz ? (Math.abs(getVal(DesiredMotor.Azimuth, ControlMode.Position) - az_pos_cmd) <= TurretConst.TOLERANCE_AZ) : true)
+            && (checkEle ? (Math.abs(getVal(DesiredMotor.Elevation, ControlMode.Position) - ele_pos_cmd) <= TurretConst.TOLERANCE_ELE) : true);
   }
 
 
@@ -150,225 +154,98 @@ public class Turret extends SubsystemBase {
    */
 
   /**
-   * Sets the azimuth motor positional PID to the given values.
+   * Sets the PIDF of the given mode for the given motor to the given PIDF controller.
    * 
-   * @param controller The values to set the PID to.
+   * @param motor The motor to set the PIDF value of.
+   * @param mode The mode to set the PIDF value of.
+   * @param controller The values to set the PIDF to.
    */
-  public void setAzPosPID(PIDFController controller) {
-    controller.copyTo(azimuthMotor, kSlotPos);
+  public void setPIDF(DesiredMotor motor, ControlMode mode, PIDFController controller) {
+    switch (motor) {
+      case Azimuth: controller.copyTo(azimuthMotor, mode.value - ENUM_ADJ_FACTOR);
+      case Elevation: controller.copyTo(elevationMotor, mode.value - ENUM_ADJ_FACTOR);
+    }
   }
 
   /**
-   * Sets the elevation motor positional PID to the given values.
+   * Sets the integral gain of the PIDF loop for the given mode of the given motor to the given value.
    * 
-   * @param controller The values to set the PID to.
+   * @param motor The motor to set the integral gain of.
+   * @param mode The mode to set the integral gain of.
+   * @param IGain The value to set the integral gain to.
    */
-  public void setElePosPID(PIDFController controller) {
-    controller.copyTo(elevationMotor, kSlotPos);
+  public void setIGain(DesiredMotor motor, ControlMode mode, double IGain) {
+    switch (motor) {
+      case Azimuth: 
+        if (mode == ControlMode.Position) az_pos_PID.setIzone(IGain); else if (mode == ControlMode.Velocity) az_vel_PID.setIzone(IGain);
+      case Elevation:
+        if (mode == ControlMode.Position) ele_pos_PID.setIzone(IGain); else if (mode == ControlMode.Velocity) ele_vel_PID.setIzone(IGain);
+    }
   }
 
   /**
-   * Sets the azimuth motor velocious PID to the given values.
+   * Sets the position of the internal encoder of the given motor to the given angle (in degrees).
    * 
-   * @param controller The values to set the PID to.
+   * @param motor The motor to set the position of.
+   * @param angle The angle to set the position to.
    */
-  public void setAzVelPID(PIDFController controller) {
-    controller.copyTo(azimuthMotor, kSlotVel);
-  }
-
-  /**
-   * Sets the elevation motor velocious PID to the given values.
-   * 
-   * @param controller The values to set the PID to.
-   */
-  public void setEleVelPID(PIDFController controller) {
-    controller.copyTo(elevationMotor, kSlotVel);
-  }
-
-  /**
-   * Resets the integral accumulation of the azimuth motor positional PID.
-   */
-  public void resetAzPosIGain() {
-    ele_pos_PID.setIzone(0.0);
-  }
-  
-  /**
-   * Resets the integral accumulation of the azimuth motor velocious PID.
-   */
-  public void resetAzVelIGain() {
-    ele_pos_PID.setIzone(0.0);
-  }
-
-  /**
-   * Resets the integral accumulation of the elevation motor positional PID.
-   */
-  public void resetElePosIGain() {
-    ele_pos_PID.setIzone(0.0);
-  }
-  
-  /**
-   * Resets the integral accumulation of the elevation motor velocious PID.
-   */
-  public void resetEleVelIGain() {
-    ele_pos_PID.setIzone(0.0);
-  }
-
-  /**
-   * Sets the internal positional encoder of the azimuth motor to the specified
-   * degree.
-   * 
-   * @param angle The angle (in deg) to set the encoder to.
-   */
-  public void setAzPos(double angle) {
+  public void setPos(DesiredMotor motor, double angle) {
     double adjustedPos = angle;
-
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedPos / DEGREES * COUNTS_PER_REV / AZIMUTH_GEAR_RATIO;
-
-    azimuthMotor.setSelectedSensorPosition(rawCount);
+    
+    switch (motor) {
+      // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
+      case Azimuth: azimuthMotor.setSelectedSensorPosition(adjustedPos / DEGREES * COUNTS_PER_REV / AZIMUTH_GEAR_RATIO);
+      // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
+      case Elevation: elevationMotor.setSelectedSensorPosition(adjustedPos / DEGREES * COUNTS_PER_REV / ELEVATION_GEAR_RATIO);
+    }
   }
 
   /**
-   * Sets the desired position of the azimuth motor to the specified degree.
+   * Sets the commanded value to the given value for the given motor and the given control mode.
    * 
-   * @param angle The angle (in deg) to set the desired position to.
+   * @param motor The motor to command.
+   * @param mode The mode to command (Position = deg, Velocity = deg/sec).
+   * @param value The value to command to.
    */
-  public void setAzDesPos(double angle) {
-    double adjustedPos = angle;
+  public void setDesVal(DesiredMotor motor, ControlMode mode, double value) {
+    double adjustedVal = value;
+    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts
+    double adjustmentFactor = COUNTS_PER_REV / DEGREES;
+    // multiply by VEL_MEASUREMENT_PERIOD to go from /sec to /0.1sec
+    if (mode == ControlMode.Velocity) adjustmentFactor *= VEL_MEASUREMENT_PERIOD;
 
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedPos / DEGREES * COUNTS_PER_REV / AZIMUTH_GEAR_RATIO;
-
-    azimuthMotor.set(ControlMode.Position, rawCount);
-
-    az_pos_cmd = adjustedPos;
-    az_control_mode = ControlMode.Position;
+    switch (motor) {
+      // divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
+      case Azimuth: azimuthMotor.set(mode, adjustedVal * adjustmentFactor / AZIMUTH_GEAR_RATIO); az_control_mode = mode;
+      // divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
+      case Elevation: elevationMotor.set(mode, adjustedVal * adjustmentFactor / ELEVATION_GEAR_RATIO); ele_control_mode = mode;
+    }
   }
 
   /**
-   * Gets the position of the internal encoder of the azimuth motor in degrees.
+   * Gets the value of the specified motor and mode.
    * 
-   * @return The position of the encoder (in degrees).
+   * @param motor The motor to get the value of.
+   * @param mode The mode to get the value of (Position = deg, Velocity = deg/sec).
    */
-  public double getAzPos() {
-    double rawCount = azimuthMotor.getSelectedSensorPosition();
+  public double getVal(DesiredMotor motor, ControlMode mode) {
+    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees
+    double adjustmentFactor = DEGREES / COUNTS_PER_REV;
+    // divide by VEL_MEASUREMENT_PERIOD to go from /0.1sec to sec
+    if (mode == ControlMode.Velocity) adjustmentFactor /= VEL_MEASUREMENT_PERIOD;
 
-    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees, multiply by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-    double adjustedPos = rawCount / COUNTS_PER_REV * DEGREES * AZIMUTH_GEAR_RATIO;
+    switch (motor) {
+      // multiply by AZIMUTH_GEAR_RATIO because... it's the gear ratio
+      case Azimuth: 
+        if (mode == ControlMode.Position) return (azimuthMotor.getSelectedSensorPosition() * adjustmentFactor * AZIMUTH_GEAR_RATIO); 
+        else if (mode == ControlMode.Velocity) return (azimuthMotor.getSelectedSensorVelocity() * adjustmentFactor * AZIMUTH_GEAR_RATIO);
+      // multiply by ELEVATION_GEAR_RATIO because... it's the gear ratio
+      case Elevation:
+      if (mode == ControlMode.Position) return (elevationMotor.getSelectedSensorPosition() * adjustmentFactor * ELEVATION_GEAR_RATIO); 
+      else if (mode == ControlMode.Velocity) return (elevationMotor.getSelectedSensorVelocity() * adjustmentFactor * ELEVATION_GEAR_RATIO);
+    }
 
-    return adjustedPos;
-  }
-
-  /**
-   * Sets the internal positional encoder of the elevation motor to the specified degree.
-   * 
-   * @param angle The angle (in deg) to set the encoder to.
-   */
-  public void setElePos(double angle) {
-    double adjustedPos = angle;
-
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to
-    // encoder counts, divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedPos / DEGREES * COUNTS_PER_REV / ELEVATION_GEAR_RATIO;
-
-    elevationMotor.setSelectedSensorPosition(rawCount);
-  }
-
-  /**
-   * Sets the desired position of the elevation motor to the specified degree.
-   * 
-   * @param angle The angle (in deg) to set the desired position to.
-   */
-  public void setEleDesPos(double angle) {
-    double adjustedPos = angle;
-
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedPos / DEGREES * COUNTS_PER_REV / ELEVATION_GEAR_RATIO;
-
-    elevationMotor.set(ControlMode.Position, rawCount);
-
-    ele_pos_cmd = adjustedPos;
-    ele_control_mode = ControlMode.Position;
-  }
-
-  /**
-   * Gets the position of the internal encoder of the elevation motor in degrees.
-   * 
-   * @return The position of the encoder (in degrees).
-   */
-  public double getElePos() {
-    double rawCount = elevationMotor.getSelectedSensorPosition();
-
-    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees, multiply by ELEVATION_GEAR_RATIO because... it's the gear ratio
-    double adjustedPos = rawCount / COUNTS_PER_REV * DEGREES * ELEVATION_GEAR_RATIO;
-
-    return adjustedPos;
-  }
-
-  /**
-   * Sets the desired velocity of the azimuth motor to the specified deg/sec.
-   * 
-   * @param velocity The velocity (in deg/sec) to set the desired velocity to.
-   */
-  public void setAzDesVel(double velocity) {
-    double adjustedVel = velocity;
-
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts,
-    // multiply by VEL_MEASUREMENT_PERIOD to go from /sec to /0.1sec, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedVel / DEGREES * COUNTS_PER_REV * VEL_MEASUREMENT_PERIOD / AZIMUTH_GEAR_RATIO;
-
-    azimuthMotor.set(rawCount);
-
-    az_vel_cmd = adjustedVel;
-    az_control_mode = ControlMode.Velocity;
-  }
-
-  /**
-   * Gets the velocity of the internal encoder of the azimuth motor in deg/sec.
-   * 
-   * @return The velocity of the encoder (in deg/sec).
-   */
-  public double getAzVel() {
-    double rawCount = azimuthMotor.getSelectedSensorPosition();
-
-    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees,
-    // divide by VEL_MEASUREMENT_PERIOD to go from /0.1sec to sec, multiply by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-    double adjustedVel = rawCount / COUNTS_PER_REV * DEGREES / VEL_MEASUREMENT_PERIOD * AZIMUTH_GEAR_RATIO;
-
-    return adjustedVel;
-  }
-
-  /**
-   * Sets the desired velocity of the elevation motor to the specified deg/sec.
-   * 
-   * @param velocity The velocity (in deg/sec) to set the desired velocity to.
-   */
-  public void setEleDesVel(double velocity) {
-    double adjustedVel = velocity;
-
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts,
-    // multiply by VEL_MEASUREMENT_PERIOD to go from /sec to /0.1sec, divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
-    double rawCount = adjustedVel / DEGREES * COUNTS_PER_REV * VEL_MEASUREMENT_PERIOD / ELEVATION_GEAR_RATIO;
-
-    elevationMotor.set(ControlMode.Velocity, rawCount);
-
-    ele_vel_cmd = adjustedVel;
-    ele_control_mode = ControlMode.Velocity;
-  }
-
-  /**
-   * Gets the velocity of the internal encoder of the elevation motor in deg/sec.
-   * 
-   * @return The velocity of the encoder (in deg/sec).
-   */
-  public double getEleVel() {
-    double rawCount = elevationMotor.getSelectedSensorPosition();
-
-    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees,
-    // divide by VEL_MEASUREMENT_PERIOD to go from /0.1sec to sec, multiply by ELEVATION_GEAR_RATIO because... it's the gear ratio
-    double adjustedVel = rawCount / COUNTS_PER_REV * DEGREES / VEL_MEASUREMENT_PERIOD * ELEVATION_GEAR_RATIO;
-
-    return adjustedVel;
+    return Double.NaN;
   }
 
   // NT stuff

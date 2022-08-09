@@ -1,5 +1,7 @@
 package frc.robot.commands.test;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.networktables.NetworkTable;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
@@ -8,6 +10,7 @@ import frc.robot.commands.turret.MoveTurretFor;
 import frc.robot.subsystems.hid.XboxButton;
 import frc.robot.subsystems.ifx.DriverControls;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.DesiredMotor;
 import frc.robot.util.PIDFController;
 
 public class AzVelPIDFTuning extends CommandBase {
@@ -42,15 +45,15 @@ public class AzVelPIDFTuning extends CommandBase {
         nt_kD = table.getEntry("/kD");
         nt_kF = table.getEntry("/kF");
 
-        turret.setAzVelPID(new PIDFController(
-            nt_az_kP.getDouble(1.0),
-            nt_az_kI.getDouble(0.0),
-            nt_az_kD.getDouble(0.0),
-            nt_az_kF.getDouble(0.0)
+        turret.setPIDF(DesiredMotor.Azimuth, ControlMode.Velocity, new PIDFController(
+            nt_kP.getDouble(1.0),
+            nt_kI.getDouble(0.0),
+            nt_kD.getDouble(0.0),
+            nt_kF.getDouble(0.0)
         ));
 
         if (kIAccumReset) {
-            turret.resetAzVelIGain();
+            turret.setIGain(DesiredMotor.Azimuth, ControlMode.Velocity, 0.0);
         }
 
         new MoveTurretFor(turret, 1.0, 0.0, Double.MAX_VALUE);

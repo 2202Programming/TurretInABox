@@ -1,7 +1,10 @@
 package frc.robot.commands.turret;
 
+import com.ctre.phoenix.motorcontrol.ControlMode;
+
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.Turret.DesiredMotor;
 
 public class MoveTurretTo extends CommandBase {
     
@@ -26,8 +29,8 @@ public class MoveTurretTo extends CommandBase {
 
     @Override
     public void initialize() {
-        turret.setAzDesPos(az);
-        turret.setEleDesPos(ele);
+        turret.setDesVal(DesiredMotor.Azimuth, ControlMode.Position, az);
+        turret.setDesVal(DesiredMotor.Elevation, ControlMode.Position, az);
         System.out.println("**** Moving az to " + az + "deg, ele to " + ele + "deg ****");
     }
 
@@ -39,6 +42,6 @@ public class MoveTurretTo extends CommandBase {
 
     @Override
     public boolean isFinished() {
-        return turret.checkIsFinishedPos();
+        return turret.checkIsFinishedPos(true, true);
     }
 }
