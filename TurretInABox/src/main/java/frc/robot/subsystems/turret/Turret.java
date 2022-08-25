@@ -18,7 +18,6 @@ import frc.robot.Constants.TurretConst;
 import frc.robot.util.PIDFController;
 
 import static frc.robot.Constants.TurretConst.AZIMUTH_GEAR_RATIO;
-import static frc.robot.Constants.TurretConst.ELEVATION_GEAR_RATIO;
 import static frc.robot.Constants.TurretConst.BUSTIMEOUT;
 import static frc.robot.Constants.TurretConst.NT_NAME;
 
@@ -33,7 +32,7 @@ public class Turret extends SubsystemBase {
   ControlMode ele_control_mode;
 
   final int ENUM_ADJ_FACTOR = -1;
-  
+
   // Talon constanst
   final double COUNTS_PER_REV = 4096;
   final double DEGREES = 360;
@@ -57,7 +56,7 @@ public class Turret extends SubsystemBase {
 
   // falcons
   WPI_TalonFX azimuthMotor;
-  WPI_TalonFX elevationMotor;
+  // WPI_TalonFX elevationMotor; not in turret in a box
 
   // sensor collections
   TalonFXSensorCollection az_sensors;
@@ -74,24 +73,18 @@ public class Turret extends SubsystemBase {
 
   public Turret(ControlMode defaultMode) {
     azimuthMotor = new WPI_TalonFX(CAN2.AZIMUTH, CAN2.BUSNAME);
-    elevationMotor = new WPI_TalonFX(CAN2.ELEVATION, CAN2.BUSNAME);
 
     az_sensors = azimuthMotor.getSensorCollection();
-    ele_sensors = elevationMotor.getSensorCollection();
 
     azimuthMotor.configFactoryDefault();
-    elevationMotor.configFactoryDefault();
 
     azimuthMotor.setNeutralMode(NeutralMode.Brake);
-    elevationMotor.setNeutralMode(NeutralMode.Brake);
 
     az_sensors.setIntegratedSensorPositionToAbsolute(BUSTIMEOUT);
     ele_sensors.setIntegratedSensorPositionToAbsolute(BUSTIMEOUT);
 
     az_pos_PID.copyTo(azimuthMotor, kSlotPos);
-    ele_pos_PID.copyTo(elevationMotor, kSlotPos);
     az_vel_PID.copyTo(azimuthMotor, kSlotVel);
-    ele_vel_PID.copyTo(elevationMotor, kSlotVel);
 
     az_control_mode = defaultMode;
     ele_control_mode = defaultMode;
@@ -104,37 +97,45 @@ public class Turret extends SubsystemBase {
   public void periodic() {
     az_pos = getVal(DesiredMotor.Azimuth, ControlMode.Position);
     az_vel = getVal(DesiredMotor.Azimuth, ControlMode.Velocity);
-    ele_pos = getVal(DesiredMotor.Elevation, ControlMode.Position);
-    ele_vel = getVal(DesiredMotor.Elevation, ControlMode.Velocity);
     NTUpdate();
   }
 
   /**
    * Sets the control mode of the indicated motors to the indicated control mode.
    * 
-   * @param setAz Whether or not to set the azimuth motor control mode to the given mode.
+   * @param setAz Whether or not to set the azimuth motor control mode to the
+   *              given mode.
    * @param motor Which motor to set the mode for.
    */
   public void setMode(DesiredMotor motor, ControlMode mode) {
     switch (motor) {
-      case Azimuth: az_control_mode = mode;
-      case Elevation: ele_control_mode = mode;
+      case Azimuth:
+        az_control_mode = mode;
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
   }
 
   /**
-   * Checks if the actual position of the azimuth and elevation motors are close enough to the commanded positions.
+   * Checks if the actual position of the azimuth and elevation motors are close
+   * enough to the commanded positions.
    * 
-   * @param checkAz Whether to check if azimuth position is within tolerance of commanded position.
-   * @param checkEle Whether to check if elevation position is within tolerance of commanded position.
-   * @return True if delta between commanded and actual positions is within tolerances, false otherwise.
+   * @param checkAz  Whether to check if azimuth position is within tolerance of
+   *                 commanded position.
+   * @param checkEle Whether to check if elevation position is within tolerance of
+   *                 commanded position.
+   * @return True if delta between commanded and actual positions is within
+   *         tolerances, false otherwise.
    */
   public boolean checkIsFinishedPos(boolean checkAz, boolean checkEle) {
-    return (checkAz ? (Math.abs(getVal(DesiredMotor.Azimuth, ControlMode.Position) - az_pos_cmd) <= TurretConst.TOLERANCE_AZ) : true)
-            && (checkEle ? (Math.abs(getVal(DesiredMotor.Elevation, ControlMode.Position) - ele_pos_cmd) <= TurretConst.TOLERANCE_ELE) : true);
+    return (checkAz
+        ? (Math.abs(getVal(DesiredMotor.Azimuth, ControlMode.Position) - az_pos_cmd) <= TurretConst.TOLERANCE_AZ)
+        : true)
+        && (checkEle
+            ? (Math
+                .abs(getVal(DesiredMotor.Elevation, ControlMode.Position) - ele_pos_cmd) <= TurretConst.TOLERANCE_ELE)
+            : true);
   }
-
-
 
   /*
    * Note on the nomenclature for the get/set methods below:
@@ -154,71 +155,87 @@ public class Turret extends SubsystemBase {
    */
 
   /**
-   * Sets the PIDF of the given mode for the given motor to the given PIDF controller.
+   * Sets the PIDF of the given mode for the given motor to the given PIDF
+   * controller.
    * 
-   * @param motor The motor to set the PIDF value of.
-   * @param mode The mode to set the PIDF value of.
+   * @param motor      The motor to set the PIDF value of.
+   * @param mode       The mode to set the PIDF value of.
    * @param controller The values to set the PIDF to.
    */
   public void setPIDF(DesiredMotor motor, ControlMode mode, PIDFController controller) {
     switch (motor) {
-      case Azimuth: controller.copyTo(azimuthMotor, mode.value - ENUM_ADJ_FACTOR);
-      case Elevation: controller.copyTo(elevationMotor, mode.value - ENUM_ADJ_FACTOR);
+      case Azimuth:
+        controller.copyTo(azimuthMotor, mode.value - ENUM_ADJ_FACTOR);
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
   }
 
   /**
-   * Sets the integral gain of the PIDF loop for the given mode of the given motor to the given value.
+   * Sets the integral gain of the PIDF loop for the given mode of the given motor
+   * to the given value.
    * 
    * @param motor The motor to set the integral gain of.
-   * @param mode The mode to set the integral gain of.
+   * @param mode  The mode to set the integral gain of.
    * @param IGain The value to set the integral gain to.
    */
   public void setIGain(DesiredMotor motor, ControlMode mode, double IGain) {
     switch (motor) {
-      case Azimuth: 
-        if (mode == ControlMode.Position) az_pos_PID.setIzone(IGain); else if (mode == ControlMode.Velocity) az_vel_PID.setIzone(IGain);
-      case Elevation:
-        if (mode == ControlMode.Position) ele_pos_PID.setIzone(IGain); else if (mode == ControlMode.Velocity) ele_vel_PID.setIzone(IGain);
+      case Azimuth:
+        if (mode == ControlMode.Position)
+          az_pos_PID.setIzone(IGain);
+        else if (mode == ControlMode.Velocity)
+          az_vel_PID.setIzone(IGain);
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
   }
 
   /**
-   * Sets the position of the internal encoder of the given motor to the given angle (in degrees).
+   * Sets the position of the internal encoder of the given motor to the given
+   * angle (in degrees).
    * 
    * @param motor The motor to set the position of.
    * @param angle The angle to set the position to.
    */
   public void setPos(DesiredMotor motor, double angle) {
     double adjustedPos = angle;
-    
+
     switch (motor) {
-      // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-      case Azimuth: azimuthMotor.setSelectedSensorPosition(adjustedPos / DEGREES * COUNTS_PER_REV / AZIMUTH_GEAR_RATIO);
-      // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts, divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
-      case Elevation: elevationMotor.setSelectedSensorPosition(adjustedPos / DEGREES * COUNTS_PER_REV / ELEVATION_GEAR_RATIO);
+      // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to
+      // encoder counts, divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
+      case Azimuth:
+        azimuthMotor.setSelectedSensorPosition(adjustedPos / DEGREES * COUNTS_PER_REV / AZIMUTH_GEAR_RATIO);
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
   }
 
   /**
-   * Sets the commanded value to the given value for the given motor and the given control mode.
+   * Sets the commanded value to the given value for the given motor and the given
+   * control mode.
    * 
    * @param motor The motor to command.
-   * @param mode The mode to command (Position = deg, Velocity = deg/sec).
+   * @param mode  The mode to command (Position = deg, Velocity = deg/sec).
    * @param value The value to command to.
    */
   public void setDesVal(DesiredMotor motor, ControlMode mode, double value) {
     double adjustedVal = value;
-    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to encoder counts
+    // divide by DEGREES to go to revolutions, multiply by COUNTS_PER_REV to go to
+    // encoder counts
     double adjustmentFactor = COUNTS_PER_REV / DEGREES;
     // multiply by VEL_MEASUREMENT_PERIOD to go from /sec to /0.1sec
-    if (mode == ControlMode.Velocity) adjustmentFactor *= VEL_MEASUREMENT_PERIOD;
+    if (mode == ControlMode.Velocity)
+      adjustmentFactor *= VEL_MEASUREMENT_PERIOD;
 
     switch (motor) {
       // divide by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-      case Azimuth: azimuthMotor.set(mode, adjustedVal * adjustmentFactor / AZIMUTH_GEAR_RATIO); az_control_mode = mode;
-      // divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
-      case Elevation: elevationMotor.set(mode, adjustedVal * adjustmentFactor / ELEVATION_GEAR_RATIO); ele_control_mode = mode;
+      case Azimuth:
+        azimuthMotor.set(mode, adjustedVal * adjustmentFactor / AZIMUTH_GEAR_RATIO);
+        az_control_mode = mode;
+        // divide by ELEVATION_GEAR_RATIO because... it's the gear ratio
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
   }
 
@@ -226,23 +243,26 @@ public class Turret extends SubsystemBase {
    * Gets the value of the specified motor and mode.
    * 
    * @param motor The motor to get the value of.
-   * @param mode The mode to get the value of (Position = deg, Velocity = deg/sec).
+   * @param mode  The mode to get the value of (Position = deg, Velocity =
+   *              deg/sec).
    */
   public double getVal(DesiredMotor motor, ControlMode mode) {
-    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to degrees
+    // divide by COUNTS_PER_REV to go to revolutions, multiply by DEGREES to go to
+    // degrees
     double adjustmentFactor = DEGREES / COUNTS_PER_REV;
     // divide by VEL_MEASUREMENT_PERIOD to go from /0.1sec to sec
-    if (mode == ControlMode.Velocity) adjustmentFactor /= VEL_MEASUREMENT_PERIOD;
+    if (mode == ControlMode.Velocity)
+      adjustmentFactor /= VEL_MEASUREMENT_PERIOD;
 
     switch (motor) {
       // multiply by AZIMUTH_GEAR_RATIO because... it's the gear ratio
-      case Azimuth: 
-        if (mode == ControlMode.Position) return (azimuthMotor.getSelectedSensorPosition() * adjustmentFactor * AZIMUTH_GEAR_RATIO); 
-        else if (mode == ControlMode.Velocity) return (azimuthMotor.getSelectedSensorVelocity() * adjustmentFactor * AZIMUTH_GEAR_RATIO);
-      // multiply by ELEVATION_GEAR_RATIO because... it's the gear ratio
-      case Elevation:
-      if (mode == ControlMode.Position) return (elevationMotor.getSelectedSensorPosition() * adjustmentFactor * ELEVATION_GEAR_RATIO); 
-      else if (mode == ControlMode.Velocity) return (elevationMotor.getSelectedSensorVelocity() * adjustmentFactor * ELEVATION_GEAR_RATIO);
+      case Azimuth:
+        if (mode == ControlMode.Position)
+          return (azimuthMotor.getSelectedSensorPosition() * adjustmentFactor * AZIMUTH_GEAR_RATIO);
+        else if (mode == ControlMode.Velocity)
+          return (azimuthMotor.getSelectedSensorVelocity() * adjustmentFactor * AZIMUTH_GEAR_RATIO);
+      default:
+        System.out.println("***** ERROR: DesiredMotor invalid *****");
     }
 
     return Double.NaN;
