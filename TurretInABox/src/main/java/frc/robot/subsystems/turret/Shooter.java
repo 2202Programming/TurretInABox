@@ -6,6 +6,8 @@ package frc.robot.subsystems.turret;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+// TODO: bring over prev year shooter stuff
+
 public class Shooter extends SubsystemBase {
   /** Creates a new ExampleSubsystem. */
   public Shooter() {}

@@ -27,6 +27,7 @@ public class MoveTurretToLoop extends SequentialCommandGroup {
   }
 
   // Called when the command is initially scheduled.
+  //TODO: when is the construced command scheduled??? Don't think this will work as is.
   @Override
   public void initialize() {
     moveCmd = new SequentialCommandGroup(new MoveTurretTo(turret, 180, 0), new MoveTurretTo(turret, 0, 0));

@@ -25,7 +25,7 @@ public class MoveTurretForLoop extends SequentialCommandGroup {
 
     addRequirements(turret);
   }
-
+//TODO: don't think this will work without scheduling...
   // Called when the command is initially scheduled.
   @Override
   public void initialize() {

@@ -28,8 +28,9 @@ public class Turret extends SubsystemBase {
     Elevation,
   }
 
-  ControlMode az_control_mode;
-  ControlMode ele_control_mode;
+
+  ControlMode az_control_mode;     //### TODO: maybe consider generalizing AXES control, but really
+  ControlMode ele_control_mode;    //### there isn't an elevation on the hood at this time.  az and flywheel only
 
   final int ENUM_ADJ_FACTOR = -1;
 
@@ -127,6 +128,11 @@ public class Turret extends SubsystemBase {
    * @return True if delta between commanded and actual positions is within
    *         tolerances, false otherwise.
    */
+
+   //TODO: software PID used in positon inner loop have this built in.
+   // If using Hardware POS and VEL loop closure, then there may be an api
+   // either way, need to look at POS and VEL for a finish check.
+   //TODO: Only AZ. But still consider how to use same code for each axis.
   public boolean checkIsFinishedPos(boolean checkAz, boolean checkEle) {
     return (checkAz
         ? (Math.abs(getVal(DesiredMotor.Azimuth, ControlMode.Position) - az_pos_cmd) <= TurretConst.TOLERANCE_AZ)
