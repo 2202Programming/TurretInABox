@@ -3,6 +3,7 @@ package frc.robot.util;
 import static frc.robot.Constants.DT;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.util.sendable.SendableBuilder;
@@ -106,5 +107,20 @@ public class PIDFController extends PIDController {
       dest.config_kF(slot, this.getF());
       dest.config_IntegralZone(slot, this.getIzone());
     }
+
+    /**
+     * 
+     * copyTo()  copies this pid's values down to a hardward PID implementation
+     * @param dest  device 
+     * @param slot  control slot on device
+     */
+
+    public void copyTo(WPI_TalonSRX dest, int slot ) {
+        dest.config_kP(slot, this.getP());
+        dest.config_kI(slot,this.getI());
+        dest.config_kD(slot, this.getD());
+        dest.config_kF(slot, this.getF());
+        dest.config_IntegralZone(slot, this.getIzone());
+      }
 
 }

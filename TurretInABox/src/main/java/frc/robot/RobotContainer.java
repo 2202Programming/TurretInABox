@@ -4,20 +4,15 @@
 
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-
 import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.XboxController;
 import frc.robot.commands.ExampleCommand;
-import frc.robot.commands.test.AzPosPIDFTuning;
-import frc.robot.commands.test.AzVelPIDFTuning;
-import frc.robot.commands.test.ElePosPIDFTuning;
-import frc.robot.commands.test.EleVelPIDFTuning;
+import frc.robot.commands.test.PIDFTuning;
 import frc.robot.subsystems.ExampleSubsystem;
 import frc.robot.subsystems.hid.HID_Xbox_Subsystem;
 import frc.robot.subsystems.hid.SideboardController.SBButton;
 import frc.robot.subsystems.ifx.DriverControls.Id;
-import frc.robot.subsystems.turret.Turret;
+import frc.robot.subsystems.turret.TurretAxes;
 import edu.wpi.first.wpilibj2.command.Command;
 
 /**
@@ -36,7 +31,7 @@ public class RobotContainer {
 
   public final HID_Xbox_Subsystem driverControls;
 
-  public final Turret turret;
+  public final TurretAxes turret;
 
   public RobotContainer() {
     // Configure the button bindings
@@ -45,7 +40,7 @@ public class RobotContainer {
     // Values based off FRC-2022 constants
     driverControls = new HID_Xbox_Subsystem(3.0, 0.9, 0.05);
 
-    this.turret = new Turret(ControlMode.Velocity);
+    this.turret = new TurretAxes();
   }
 
   /**
@@ -55,10 +50,7 @@ public class RobotContainer {
    * edu.wpi.first.wpilibj2.command.button.JoystickButton}.
    */
   private void configureButtonBindings() {
-    driverControls.bind(Id.SwitchBoard, SBButton.Sw11).whileHeld(new AzPosPIDFTuning(turret, false, driverControls));
-    driverControls.bind(Id.SwitchBoard, SBButton.Sw12).whileHeld(new ElePosPIDFTuning(turret, false, driverControls));
-    driverControls.bind(Id.SwitchBoard, SBButton.Sw21).whileHeld(new AzVelPIDFTuning(turret, false, driverControls));
-    driverControls.bind(Id.SwitchBoard, SBButton.Sw22).whileHeld(new EleVelPIDFTuning(turret, false, driverControls));
+    driverControls.bind(Id.SwitchBoard, SBButton.Sw11).whileHeld(new PIDFTuning(turret, false, driverControls));
 
   }
 
